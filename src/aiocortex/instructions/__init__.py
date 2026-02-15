@@ -1,7 +1,4 @@
-"""AI instruction document loader.
-
-Ported from ``app/ai_instructions/__init__.py`` in the HA Vibecode Agent add-on.
-"""
+"""AI instruction document loader."""
 
 from __future__ import annotations
 

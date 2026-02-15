@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68.0", "setuptools-scm>=8.0"]
+requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -21,12 +21,18 @@ classifiers = [
     "Topic :: Home Automation",
     "Typing :: Typed",
 ]
+
 dependencies = [
     "pydantic>=2.0,<3.0",
     "pyyaml>=6.0",
     "aiofiles>=23.0",
     "dulwich>=0.22.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/ruaan-deysel/aiocortex"
+Repository = "https://github.com/ruaan-deysel/aiocortex"
+Issues = "https://github.com/ruaan-deysel/aiocortex/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -35,6 +41,8 @@ dev = [
     "pytest-cov>=4.0",
     "mypy>=1.0",
     "ruff>=0.1.0",
+    "types-aiofiles>=23.0",
+    "types-PyYAML>=6.0",
 ]
 
 [tool.setuptools.packages.find]
