@@ -1,4 +1,4 @@
-"""aio-cortex — Async Python library for Home Assistant configuration management."""
+"""aiocortex — Async Python library for Home Assistant configuration management."""
 
 from ._version import __version__
 from .exceptions import (

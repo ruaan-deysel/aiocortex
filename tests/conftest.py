@@ -1,4 +1,4 @@
-"""Shared fixtures for aio-cortex tests."""
+"""Shared fixtures for aiocortex tests."""
 
 from __future__ import annotations
 
@@ -6,16 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from aio_cortex.files import AsyncFileManager
+from aiocortex.files import AsyncFileManager
 
 
 @pytest.fixture
 def tmp_config_dir(tmp_path: Path) -> Path:
     """Create a temporary config directory with sample files."""
     # Create sample YAML files
-    (tmp_path / "configuration.yaml").write_text(
-        "homeassistant:\n  name: Test Home\n"
-    )
+    (tmp_path / "configuration.yaml").write_text("homeassistant:\n  name: Test Home\n")
     (tmp_path / "automations.yaml").write_text(
         "- id: 'test_auto'\n  alias: Test Automation\n  trigger: []\n  action: []\n"
     )
@@ -29,9 +27,7 @@ def tmp_config_dir(tmp_path: Path) -> Path:
     # Create a themes directory
     themes_dir = tmp_path / "themes"
     themes_dir.mkdir()
-    (themes_dir / "dark.yaml").write_text(
-        "dark_theme:\n  primary-color: '#000'\n"
-    )
+    (themes_dir / "dark.yaml").write_text("dark_theme:\n  primary-color: '#000'\n")
 
     return tmp_path
 

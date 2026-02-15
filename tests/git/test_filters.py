@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from aio_cortex.git.filters import should_include_path
+from aiocortex.git.filters import should_include_path
 
 
 class TestDirectoryFiltering:

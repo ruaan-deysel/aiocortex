@@ -23,9 +23,7 @@ class YAMLEditor:
     def remove_empty_yaml_section(content: str, section_name: str) -> str:
         """Remove an empty YAML section (e.g. ``lovelace:`` with only empty sub-keys)."""
         # Pattern: comment + section with only empty subsections
-        pattern = (
-            rf"\n# .*{section_name.title()}.*\n{section_name}:\s*\n\s+\w+:\s*\n(?=\S|\Z)"
-        )
+        pattern = rf"\n# .*{section_name.title()}.*\n{section_name}:\s*\n\s+\w+:\s*\n(?=\S|\Z)"
         content = re.sub(pattern, "\n", content, flags=re.IGNORECASE)
 
         # Also try without a preceding comment

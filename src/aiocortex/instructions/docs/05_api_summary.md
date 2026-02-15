@@ -20,5 +20,6 @@ All endpoints are prefixed with `/api/cortex/` and require a valid HA long-lived
 | **Logs** | GET /api/cortex/logs/ |
 | **Logbook** | GET /api/cortex/logbook/ |
 | **HACS** | GET /api/cortex/hacs/status, /api/cortex/hacs/repositories |
-| **Add-ons** | GET /api/cortex/addons/installed, /api/cortex/addons/{slug}/info (HA OS/Supervised only) |
+| **Apps** | GET /api/cortex/apps/installed, /api/cortex/apps/{slug}/info (HA OS/Supervised only) |
+| **Node-RED** | GET /api/cortex/nodered/flows/list, /api/cortex/nodered/flows/get/{flow_id}; POST /api/cortex/nodered/flows/create; PUT /api/cortex/nodered/flows/update/{flow_id}; DELETE /api/cortex/nodered/flows/delete/{flow_id}; GET /api/cortex/nodered/nodes (HA OS/Supervised only) |
 | **Instructions** | GET /api/cortex/instructions |

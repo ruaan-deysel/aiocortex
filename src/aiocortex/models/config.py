@@ -1,5 +1,7 @@
 """Configuration models for HA entities managed through the API."""
 
+from __future__ import annotations
+
 from typing import Any
 
 from pydantic import BaseModel

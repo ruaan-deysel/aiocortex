@@ -24,13 +24,13 @@ Your Home Assistant has:
 Main rooms: Office (21), Bathroom (19), Kitchen (17)
 ```
 
-### 2. Add-on Lists
+### 2. App Lists
 
-**BAD:** 83 add-ons JSON dump
+**BAD:** 83 apps JSON dump
 
 **GOOD:**
 ```
-Available Add-ons (83 total):
+Available Apps (83 total):
 
 Popular:
 - Zigbee2MQTT (a0d7b954_zigbee2mqtt)

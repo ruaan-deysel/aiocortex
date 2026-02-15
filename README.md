@@ -1,4 +1,4 @@
-# aio-cortex
+# aiocortex
 
 Async Python library for Home Assistant configuration management. Provides git versioning (via dulwich), file management, YAML editing, Pydantic models, and AI instruction documents — all independent of Home Assistant internals.
 
@@ -7,7 +7,7 @@ This library is the core engine behind the [Cortex](https://github.com/ruaan-dey
 ## Installation
 
 ```bash
-pip install aio-cortex
+pip install aiocortex
 ```
 
 ## Features
@@ -21,7 +21,7 @@ pip install aio-cortex
 ## Quick Start
 
 ```python
-from aio_cortex import AsyncFileManager, GitManager, YAMLEditor
+from aiocortex import AsyncFileManager, GitManager, YAMLEditor
 
 # File operations
 file_mgr = AsyncFileManager(config_path=Path("/config"))
@@ -39,14 +39,14 @@ editor = YAMLEditor()
 result = editor.remove_yaml_entry(content, "- id: 'old_automation'")
 
 # AI instructions
-from aio_cortex import load_all_instructions
+from aiocortex import load_all_instructions
 docs = load_all_instructions(version="1.0.0")
 ```
 
 ## Architecture
 
 ```
-aio_cortex/
+aiocortex/
 ├── git/           # GitManager, sync, filters, cleanup (dulwich-based)
 ├── files/         # AsyncFileManager, YAMLEditor
 ├── models/        # Pydantic v2 models (common, config, files, git)
@@ -61,7 +61,7 @@ If it imports `homeassistant.*`, it does **not** belong here. This library conta
 ## Models
 
 ```python
-from aio_cortex.models import (
+from aiocortex.models import (
     AutomationConfig,   # Automation definition
     ScriptConfig,       # Script definition
     HelperSpec,         # Input helper specification
@@ -84,11 +84,11 @@ from aio_cortex.models import (
 ## Development
 
 ```bash
-git clone https://github.com/ruaan-deysel/aio-cortex.git
-cd aio-cortex
+git clone https://github.com/ruaan-deysel/aiocortex.git
+cd aiocortex
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest --cov=aio_cortex
+pytest --cov=aiocortex
 ```
 
 ## License

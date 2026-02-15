@@ -1,4 +1,4 @@
-"""Pydantic models for aio-cortex."""
+"""Pydantic models for aiocortex."""
 
 from .common import CortexResponse
 from .config import AutomationConfig, HelperSpec, ScriptConfig, ServiceCallSpec

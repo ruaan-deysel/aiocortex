@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0", "setuptools-scm>=8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aio-cortex"
+name = "aiocortex"
 version = "0.1.0"
 description = "Async Python library for Home Assistant configuration management"
 readme = "README.md"
@@ -41,7 +41,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-aio_cortex = ["py.typed", "instructions/docs/*.md"]
+aiocortex = ["py.typed", "instructions/docs/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -95,7 +95,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["aio_cortex"]
+known-first-party = ["aiocortex"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D", "PLR2004", "PT", "F841"]
@@ -109,7 +109,7 @@ module = ["dulwich.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["aio_cortex.git.*"]
+module = ["aiocortex.git.*"]
 disallow_any_expr = false
 warn_return_any = false
 disable_error_code = ["attr-defined", "arg-type", "assignment", "union-attr"]

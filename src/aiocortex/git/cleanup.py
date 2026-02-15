@@ -84,9 +84,7 @@ def _truncate_via_clone(repo_path: Path, commits_to_keep: int) -> int:
         clone_path = os.path.join(tmpdir, "cloned_repo")
         repo_url = f"file://{repo_path}"
 
-        logger.info(
-            "Cloning repository with depth=%d from %s ...", commits_to_keep, repo_url
-        )
+        logger.info("Cloning repository with depth=%d from %s ...", commits_to_keep, repo_url)
         result = subprocess.run(
             [
                 "git",
