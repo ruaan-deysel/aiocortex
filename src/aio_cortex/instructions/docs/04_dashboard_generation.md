@@ -1,7 +1,7 @@
-# 🎨 LOVELACE DASHBOARD GENERATION (AI-DRIVEN)
+# LOVELACE DASHBOARD GENERATION (AI-DRIVEN)
 
-**IMPORTANT:** Dashboard generation happens in CURSOR AI, not on agent!
-Agent only provides entity data and applies final YAML.
+**IMPORTANT:** Dashboard generation happens in the AI assistant, not in Cortex!
+Cortex only provides entity data and applies final YAML.
 
 ---
 
@@ -15,8 +15,8 @@ When user asks to create dashboard, follow this dialog:
 
 1. **Check if dashboard already exists:**
    ```
-   ha_preview_dashboard
-   ha_list_files (directory="/")
+   GET /api/cortex/lovelace/analyze
+   GET /api/cortex/files/list?directory=/
    ```
    - Look for existing .yaml dashboard files
    - Check configuration.yaml for registered dashboards
@@ -24,32 +24,32 @@ When user asks to create dashboard, follow this dialog:
 
 2. **Validate dashboard filename:**
    ```
-   ⚠️ CRITICAL: Dashboard URL path MUST contain a hyphen (-)!
-   
-   ❌ BAD:  "heating" (no hyphen)
-   ❌ BAD:  "stat" (no hyphen)
-   ❌ BAD:  "climate" (no hyphen)
-   
-   ✅ GOOD: "heating-now"
-   ✅ GOOD: "climate-control"
-   ✅ GOOD: "my-dashboard"
+   CRITICAL: Dashboard URL path MUST contain a hyphen (-)!
+
+   BAD:  "heating" (no hyphen)
+   BAD:  "stat" (no hyphen)
+   BAD:  "climate" (no hyphen)
+
+   GOOD: "heating-now"
+   GOOD: "climate-control"
+   GOOD: "my-dashboard"
    ```
-   
+
    **Rules:**
    - If user suggests name without hyphen (e.g., "Heating Now")
-   - Convert to kebab-case: "heating-now" ✅
-   - If single word: add "-dashboard": "heating" → "heating-dashboard"
+   - Convert to kebab-case: "heating-now"
+   - If single word: add "-dashboard": "heating" -> "heating-dashboard"
    - Always confirm filename with user before proceeding
 
 3. **Example dialog:**
    ```
    User: "Create dashboard called 'Heating'"
-   
-   AI: "I'll create a dashboard for you. 
-   
+
+   AI: "I'll create a dashboard for you.
+
    Note: Home Assistant requires dashboard filenames to contain a hyphen.
    I suggest: 'heating-dashboard.yaml'
-   
+
    Or would you prefer: 'heating-monitor', 'heating-control', or another name?"
    ```
 
@@ -64,9 +64,9 @@ Ask clarifying questions:
 ### STEP 2: Analyze Available Entities
 
 ```
-ha_analyze_entities_for_dashboard
-→ Get complete entity list with attributes
-→ Understand what user has available
+GET /api/cortex/lovelace/analyze
+-> Get complete entity list with attributes
+-> Understand what user has available
 ```
 
 ### STEP 3: Propose Dashboard Structure
@@ -76,7 +76,7 @@ Based on user requirements and available entities, propose:
 - "Would you like to add Media view for your 3 media players?"
 - Show entity counts per view
 
-### STEP 4: Generate YAML in Cursor (YOU)
+### STEP 4: Generate YAML (in AI assistant)
 
 Create dashboard YAML structure:
 
@@ -94,9 +94,9 @@ views:
         entities:
           - climate.bedroom_trv
           - light.living_room
-  
+
   - title: Climate
-    path: climate  
+    path: climate
     icon: mdi:thermostat
     cards:
       - type: thermostat
@@ -114,13 +114,14 @@ views:
 ### STEP 6: Apply Dashboard
 
 ```
-ha_apply_dashboard({
-  dashboard_config: your_generated_yaml,
-  filename: 'custom-dashboard.yaml',
-  register_dashboard: true
-})
-→ Agent applies, registers, restarts HA
-→ Dashboard appears in sidebar!
+POST /api/cortex/lovelace/apply
+{
+  "dashboard_config": "<your_generated_yaml>",
+  "filename": "custom-dashboard.yaml",
+  "register_dashboard": true
+}
+-> Cortex applies, registers, restarts HA
+-> Dashboard appears in sidebar!
 ```
 
 ---
@@ -168,15 +169,15 @@ ha_apply_dashboard({
 
 ## Key Points
 
-- ✅ AI generates YAML in Cursor (flexible, intelligent)
-- ✅ AI asks questions to understand needs
-- ✅ AI proposes before creating
-- ✅ Agent only applies (simple, reliable)
-- ✅ User gets custom dashboard, not template
+- AI generates YAML in the assistant (flexible, intelligent)
+- AI asks questions to understand needs
+- AI proposes before creating
+- Cortex only applies (simple, reliable)
+- User gets custom dashboard, not template
 
 ---
 
-## 🎯 Advanced Features
+## Advanced Features
 
 ### Conditional Cards
 
@@ -187,8 +188,3 @@ For dynamic dashboards that show/hide cards based on entity state (e.g., showing
 - Low battery alerts
 - Active media players
 - Problem/warning cards
-
-
-
-
-

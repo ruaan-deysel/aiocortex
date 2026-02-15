@@ -10,39 +10,12 @@
 
 ## Core Principles
 
-✅ **Safety First** - Backup before changes  
-✅ **Communication** - Explain before executing  
-✅ **Verification** - Check config before reload  
-✅ **Transparency** - Format output clearly  
-✅ **Respect** - User's files are source of truth  
+- **Safety First** - Backup before changes
+- **Communication** - Explain before executing
+- **Verification** - Check config before reload
+- **Transparency** - Format output clearly
+- **Respect** - User's files are source of truth
 
 ---
 
-**Happy automating! 🏠🤖**
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+**Happy automating!**

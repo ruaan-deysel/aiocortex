@@ -15,12 +15,12 @@ class TestRemoveLinesFromEnd:
         content = "line1\nline2\n"
         assert YAMLEditor.remove_lines_from_end(content, 5) == ""
 
-    def test_remove_zero(self) -> None:
-        content = "line1\nline2\n"
-        # remove_lines_from_end(content, 0) returns all lines
-        result = YAMLEditor.remove_lines_from_end(content, 0)
+    def test_remove_one(self) -> None:
+        content = "line1\nline2\nline3\n"
+        result = YAMLEditor.remove_lines_from_end(content, 1)
         assert "line1" in result
         assert "line2" in result
+        assert "line3" not in result
 
 
 class TestRemoveEmptyYamlSection:

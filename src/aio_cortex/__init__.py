@@ -10,6 +10,7 @@ from .exceptions import (
     YAMLParseError,
 )
 from .files import AsyncFileManager, YAMLEditor
+from .git import GitManager
 from .instructions import get_instruction_files, load_all_instructions
 from .models import (
     AutomationConfig,
@@ -36,6 +37,8 @@ __all__ = [
     # Files
     "AsyncFileManager",
     "YAMLEditor",
+    # Git
+    "GitManager",
     # Instructions
     "get_instruction_files",
     "load_all_instructions",

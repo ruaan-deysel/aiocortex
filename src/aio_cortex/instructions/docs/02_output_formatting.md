@@ -1,8 +1,8 @@
 # OUTPUT FORMATTING FOR USER
 
-**CRITICAL: Always format MCP tool output for readability!**
+**CRITICAL: Always format API output for readability!**
 
-When MCP tools return data, DON'T show raw JSON to user. Format it nicely.
+When API endpoints return data, DON'T show raw JSON to user. Format it nicely.
 
 ---
 
@@ -10,11 +10,11 @@ When MCP tools return data, DON'T show raw JSON to user. Format it nicely.
 
 ### 1. Entity Analysis
 
-❌ **BAD:** Show 7000 lines of JSON
+**BAD:** Show 7000 lines of JSON
 
-✅ **GOOD:**
+**GOOD:**
 ```
-📊 Your Home Assistant has:
+Your Home Assistant has:
 - 238 total entities
 - 76 sensors (temperature, battery, system status)
 - 7 climate devices (TRVs)
@@ -26,11 +26,11 @@ Main rooms: Office (21), Bathroom (19), Kitchen (17)
 
 ### 2. Add-on Lists
 
-❌ **BAD:** 83 add-ons JSON dump
+**BAD:** 83 add-ons JSON dump
 
-✅ **GOOD:**
+**GOOD:**
 ```
-📦 Available Add-ons (83 total):
+Available Add-ons (83 total):
 
 Popular:
 - Zigbee2MQTT (a0d7b954_zigbee2mqtt)
@@ -40,22 +40,22 @@ Popular:
 
 ### 3. Logs
 
-❌ **BAD:** Raw JSON array
+**BAD:** Raw JSON array
 
-✅ **GOOD:**
+**GOOD:**
 ```
-📋 Recent logs:
-[21:03:35] ✅ Dashboard registered
-[21:03:46] ⚠️ Restart failed: 504 (normal during restart)
+Recent logs:
+[21:03:35] Dashboard registered
+[21:03:46] Restart failed: 504 (normal during restart)
 ```
 
 ### 4. Dashboard Operations
 
-❌ **BAD:** `{"success": true, "data": {...}}`
+**BAD:** `{"success": true, "data": {...}}`
 
-✅ **GOOD:**
+**GOOD:**
 ```
-✅ Dashboard "Heating Now" created!
+Dashboard "Heating Now" created!
 - File: heating-now.yaml
 - Registered in configuration.yaml
 - HA restarting...
@@ -66,7 +66,6 @@ Popular:
 
 ## General Rules
 
-- Use emojis for visual clarity (🔥 ✅ ⚠️ 📊)
 - Show key information, hide implementation details
 - Format lists, tables, and hierarchies clearly
 - Highlight important values (counts, statuses, errors)
@@ -79,30 +78,3 @@ Popular:
 - User explicitly asks for "raw data" or "JSON"
 - Debugging/troubleshooting scenarios
 - Developer mode requests
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
