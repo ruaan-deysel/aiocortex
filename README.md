@@ -2,7 +2,7 @@
 
 Async Python library for Home Assistant configuration management. Provides git versioning (via dulwich), file management, YAML editing, Pydantic models, and AI instruction documents — all independent of Home Assistant internals.
 
-This library is the core engine behind the [Cortex](https://github.com/cortex-ha/cortex) HACS integration.
+This library is the core engine behind the [Cortex](https://github.com/ruaan-deysel/cortex) HACS integration.
 
 ## Installation
 
@@ -84,7 +84,7 @@ from aio_cortex.models import (
 ## Development
 
 ```bash
-git clone https://github.com/cortex-ha/aio-cortex.git
+git clone https://github.com/ruaan-deysel/aio-cortex.git
 cd aio-cortex
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
