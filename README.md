@@ -16,6 +16,7 @@ pip install aiocortex
 - **File management** — Async file operations with path security (directory traversal prevention)
 - **YAML editing** — Safe YAML read/write/parse utilities
 - **Pydantic models** — Typed data models for automations, scripts, helpers, files, git commits
+- **AI Instructions** — Bundled markdown instruction docs for AI-powered HA management (sync & async loaders)
 
 ## Quick Start
 
@@ -40,12 +41,13 @@ result = editor.remove_yaml_entry(content, "- id: 'old_automation'")
 
 ## Architecture
 
-```
+```text
 aiocortex/
-├── git/           # GitManager, sync, filters, cleanup (dulwich-based)
-├── files/         # AsyncFileManager, YAMLEditor
-├── models/        # Pydantic v2 models (common, config, files, git)
-└── exceptions.py  # CortexError hierarchy
+├── git/            # GitManager, sync, filters, cleanup (dulwich-based)
+├── files/          # AsyncFileManager, YAMLEditor
+├── instructions/   # AI instruction docs & loaders (sync + async)
+├── models/         # Pydantic v2 models (common, config, files, git)
+└── exceptions.py   # CortexError hierarchy
 ```
 
 ### Design Principle
@@ -74,6 +76,24 @@ from aiocortex.models import (
 - `pyyaml>=6.0` — YAML parsing
 - `aiofiles>=23.0` — Async file I/O
 - `dulwich>=0.22.0` — Pure Python git implementation
+
+## Instructions
+
+Bundled AI instruction documents can be loaded synchronously or asynchronously:
+
+```python
+from aiocortex import (
+    load_all_instructions,          # sync
+    async_load_all_instructions,    # async
+    get_instruction_files,          # list available docs
+)
+
+# Sync — fine at startup
+instructions = load_all_instructions(version="1.0.0")
+
+# Async — preferred inside the HA event loop
+instructions = await async_load_all_instructions(version="1.0.0")
+```
 
 ## Development
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aiocortex"
-version = "0.1.0"
+version = "0.2.0"
 description = "Async Python library for Home Assistant configuration management"
 readme = "README.md"
 license = "MIT"
@@ -49,7 +49,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-aiocortex = ["py.typed"]
+aiocortex = ["py.typed", "instructions/docs/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
