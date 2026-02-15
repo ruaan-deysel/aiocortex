@@ -7,8 +7,7 @@ All GitPython / subprocess calls have been replaced with dulwich equivalents.
 from __future__ import annotations
 
 import logging
-import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -73,7 +72,9 @@ class GitManager:
     @property
     def repo(self) -> Repo:
         if self._repo is None:
-            raise GitNotInitializedError("Shadow repository not initialised — call init_repo() first")
+            raise GitNotInitializedError(
+                "Shadow repository not initialised — call init_repo() first"
+            )
         return self._repo
 
     # ------------------------------------------------------------------
@@ -87,7 +88,9 @@ class GitManager:
         unstaged = status.unstaged
         untracked = status.untracked
         return bool(
-            staged.get("add") or staged.get("delete") or staged.get("modify")
+            staged.get("add")
+            or staged.get("delete")
+            or staged.get("modify")
             or unstaged
             or untracked
         )
@@ -148,7 +151,7 @@ class GitManager:
             porcelain.add(str(self.shadow_root), paths=None)  # stages everything
 
             if not message:
-                message = f"Auto-commit by Cortex at {datetime.now(timezone.utc).isoformat()}"
+                message = f"Auto-commit by Cortex at {datetime.now(UTC).isoformat()}"
 
             sha = porcelain.commit(
                 str(self.shadow_root),
@@ -208,7 +211,7 @@ class GitManager:
                 except Exception:
                     commit_hash = None
 
-            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
             tag_name = f"checkpoint_{timestamp}"
 
             if commit_hash:
@@ -216,7 +219,7 @@ class GitManager:
                     porcelain.tag_create(
                         str(self.shadow_root),
                         tag_name.encode("utf-8"),
-                        message=f"Checkpoint before: {user_request}".encode("utf-8"),
+                        message=f"Checkpoint before: {user_request}".encode(),
                         author=_AUTHOR,
                     )
                     logger.info("Created checkpoint tag: %s", tag_name)
@@ -264,9 +267,7 @@ class GitManager:
                         "hash": commit.id.decode("ascii")[:8],
                         "message": commit.message.decode("utf-8", errors="replace").strip(),
                         "author": commit.author.decode("utf-8", errors="replace"),
-                        "date": datetime.fromtimestamp(
-                            commit.commit_time, tz=timezone.utc
-                        ).isoformat(),
+                        "date": datetime.fromtimestamp(commit.commit_time, tz=UTC).isoformat(),
                         "files_changed": len(commit.parents),  # Approximation
                     }
                 )
@@ -365,6 +366,7 @@ class GitManager:
 
         try:
             import io
+
             from dulwich.patch import write_tree_diff
 
             repo = self.repo
@@ -390,7 +392,6 @@ class GitManager:
                 porcelain.add(str(self.shadow_root), paths=None)
                 index = repo.open_index()
                 # Build index tree to diff against HEAD tree
-                from dulwich.index import build_index_from_tree
 
                 # Simple approach: use porcelain.diff_tree
                 from dulwich.diff_tree import tree_changes
@@ -459,7 +460,9 @@ class GitManager:
             if not commit_hash:
                 commit_hash = repo.head().decode("ascii")
 
-            commit_sha = commit_hash.encode("ascii") if len(commit_hash) < 40 else commit_hash.encode()
+            commit_sha = (
+                commit_hash.encode("ascii") if len(commit_hash) < 40 else commit_hash.encode()
+            )
             # Resolve short hash
             full_sha = None
             for sha in repo.object_store:
@@ -484,6 +487,7 @@ class GitManager:
                     elif obj.type_name == b"blob":
                         if file_patterns:
                             import fnmatch
+
                             if not any(fnmatch.fnmatch(full_name, p) for p in file_patterns):
                                 return
                         # Write blob to shadow worktree
@@ -530,7 +534,9 @@ class GitManager:
         if commits_before <= self.max_backups:
             return {
                 "success": True,
-                "message": f"No cleanup needed — {commits_before} commits (max: {self.max_backups})",
+                "message": (
+                    f"No cleanup needed — {commits_before} commits (max: {self.max_backups})"
+                ),
                 "commits_before": commits_before,
                 "commits_after": commits_before,
             }

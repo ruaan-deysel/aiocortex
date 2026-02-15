@@ -26,31 +26,26 @@ from .models import (
 )
 
 __all__ = [
-    "__version__",
-    # Exceptions
-    "CortexError",
-    "FileError",
-    "GitError",
-    "GitNotInitializedError",
-    "PathSecurityError",
-    "YAMLParseError",
-    # Files
     "AsyncFileManager",
-    "YAMLEditor",
-    # Git
-    "GitManager",
-    # Instructions
-    "get_instruction_files",
-    "load_all_instructions",
-    # Models
     "AutomationConfig",
     "CommitInfo",
+    "CortexError",
     "CortexResponse",
+    "FileError",
     "FileInfo",
     "FileWriteResult",
+    "GitError",
+    "GitManager",
+    "GitNotInitializedError",
     "HelperSpec",
+    "PathSecurityError",
     "PendingChanges",
     "PendingChangesSummary",
     "ScriptConfig",
     "ServiceCallSpec",
+    "YAMLEditor",
+    "YAMLParseError",
+    "__version__",
+    "get_instruction_files",
+    "load_all_instructions",
 ]

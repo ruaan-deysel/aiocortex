@@ -19,7 +19,7 @@ conditions:
     state: heating
 ```
 
-**Why:** Lovelace conditional cards do NOT support the `attribute:` key (unlike automations).  
+**Why:** Lovelace conditional cards do NOT support the `attribute:` key (unlike automations).
 **Solution:** Create a template sensor first, then use that sensor in conditions.
 
 ---
@@ -78,7 +78,7 @@ views:
               - entity: sensor.boiler_runtime_minutes
                 name: Runtime (minutes)
             state_color: true
-      
+
       - type: vertical-stack
         cards:
           - type: markdown
@@ -90,7 +90,7 @@ views:
               - entity: sensor.adaptive_cooldown_remaining_minutes
                 name: Remaining Time (minutes)
             state_color: true
-      
+
       - type: vertical-stack
         cards:
           - type: markdown
@@ -102,7 +102,7 @@ views:
               - entity: sensor.any_trv_heating
                 name: Any TRV Heating
             state_color: true
-      
+
       # CONDITIONAL CARDS - Only visible when heating!
       - type: conditional
         conditions:
@@ -114,7 +114,7 @@ views:
           entity: climate.sonoff_trvzb_thermostat
           name: 🔥 Office TRV (Heating)
           show_current_as_primary: true
-      
+
       - type: conditional
         conditions:
           - condition: state
@@ -125,7 +125,7 @@ views:
           entity: climate.sonoff_trvzb_thermostat_2
           name: 🔥 Living Room TRV (Heating)
           show_current_as_primary: true
-      
+
       - type: conditional
         conditions:
           - condition: state
@@ -136,7 +136,7 @@ views:
           entity: climate.kitchen_trv_thermostat
           name: 🔥 Kitchen TRV (Heating)
           show_current_as_primary: true
-      
+
       # ... repeat for all 7 TRVs
 ```
 
@@ -256,7 +256,7 @@ template:
       - name: "Office TRV HVAC Action"
         unique_id: office_trv_hvac_action
         state: "{{ state_attr('climate.office_trv', 'hvac_action') }}"
-      
+
       - name: "Living Room TRV HVAC Action"
         unique_id: living_room_trv_hvac_action
         state: "{{ state_attr('climate.living_room_trv', 'hvac_action') }}"
@@ -482,7 +482,7 @@ card:
 | `above:` | Value above threshold | `above: 20` |
 | `below:` | Value below threshold | `below: 50` |
 
-**Important:** 
+**Important:**
 - Simple states (heating, on, off, idle) can be unquoted
 - States with special characters need quotes: `state: 'on'`
 - Numeric comparisons use `condition: numeric_state` with `above:`/`below:`
@@ -545,11 +545,11 @@ template:
       - name: "Office TRV HVAC Action"
         unique_id: office_trv_hvac_action
         state: "{{ state_attr('climate.office_trv', 'hvac_action') }}"
-      
+
       - name: "Bedroom TRV HVAC Action"
         unique_id: bedroom_trv_hvac_action
         state: "{{ state_attr('climate.bedroom_trv', 'hvac_action') }}"
-      
+
       # Add one sensor per TRV...
 ```
 
@@ -571,7 +571,7 @@ views:
           - entity: sensor.active_trv_count
             name: Active TRVs
         state_color: true
-      
+
       # CONDITIONAL TRV CARDS
       # Copy this block for each TRV
       - type: conditional
@@ -584,7 +584,7 @@ views:
           entity: climate.office_trv
           name: 🔥 Office TRV (Heating)
           show_current_as_primary: true
-      
+
       - type: conditional
         conditions:
           - condition: state
@@ -595,7 +595,7 @@ views:
           entity: climate.bedroom_trv
           name: 🔥 Bedroom TRV (Heating)
           show_current_as_primary: true
-      
+
       # Add one conditional block per TRV...
 ```
 
@@ -615,7 +615,7 @@ views:
    conditions:
      - entity: climate.xxx
        attribute: hvac_action  # ← Does NOT work!
-   
+
    # ✅ CORRECT
    conditions:
      - condition: state
@@ -665,4 +665,3 @@ This pattern was battle-tested and works perfectly for dynamic heating monitorin
     entity: climate.office_trv
     name: 🔥 Office TRV (Heating)
 ```
-

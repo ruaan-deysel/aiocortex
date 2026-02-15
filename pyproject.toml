@@ -48,9 +48,68 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 
 [tool.ruff]
+required-version = ">=0.15.1"
 target-version = "py312"
 line-length = 99
+
+[tool.ruff.lint]
+select = [
+  "A001",   # Variable shadowing a Python builtin
+  "ASYNC",  # flake8-async
+  "B",      # flake8-bugbear
+  "BLE",    # flake8-blind-except
+  "C",      # complexity
+  "E",      # pycodestyle
+  "F",      # pyflakes
+  "FLY",    # flynt
+  "G",      # flake8-logging-format
+  "I",      # isort
+  "ICN001", # import conventions
+  "LOG",    # flake8-logging
+  "N804",   # First argument of a class method should be named cls
+  "N805",   # First argument of a method should be named self
+  "PERF",   # perflint
+  "PGH",    # pygrep-hooks
+  "PIE",    # flake8-pie
+  "PL",     # pylint
+  "PT",     # flake8-pytest-style
+  "RET",    # flake8-return
+  "RSE",    # flake8-raise
+  "RUF",    # ruff-specific rules
+  "T20",    # flake8-print
+  "UP",     # pyupgrade
+  "W",      # pycodestyle warnings
+]
+ignore = [
+  "BLE001",  # Blind exception catch — intentional in cleanup/fallback code
+  "C901",    # Too complex — ported code, complexity is inherent
+  "PLC0415", # Import not at top-level — intentional lazy imports
+  "PERF401", # Use list comprehension — clarity preferred in some cases
+  "PLR0911", # Too many return statements
+  "PLR0912", # Too many branches
+  "PLR0913", # Too many arguments
+  "PLR0915", # Too many statements
+  "PLR2004", # Magic value comparison
+  "PLW1510", # subprocess.run without check — we check return codes manually
+  "RET504",  # Unnecessary assignment before return
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["aio_cortex"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "PLR2004", "PT", "F841"]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
+
+[[tool.mypy.overrides]]
+module = ["dulwich.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["aio_cortex.git.*"]
+disallow_any_expr = false
+warn_return_any = false
+disable_error_code = ["attr-defined", "arg-type", "assignment", "union-attr"]

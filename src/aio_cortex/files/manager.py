@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import aiofiles
 import yaml
@@ -95,7 +96,7 @@ class AsyncFileManager:
             if not full_path.exists():
                 raise FileNotFoundError(f"File not found: {file_path}")
 
-            async with aiofiles.open(full_path, "r", encoding="utf-8") as fh:
+            async with aiofiles.open(full_path, encoding="utf-8") as fh:
                 content = await fh.read()
 
             logger.info("Read file: %s (%d bytes)", file_path, len(content))
@@ -141,7 +142,7 @@ class AsyncFileManager:
                 full_path.parent.mkdir(parents=True, exist_ok=True)
                 full_path.touch()
 
-            async with aiofiles.open(full_path, "r", encoding="utf-8") as fh:
+            async with aiofiles.open(full_path, encoding="utf-8") as fh:
                 existing = await fh.read()
 
             new_content = (existing + "\n" + content) if existing else content
@@ -184,7 +185,7 @@ class AsyncFileManager:
             logger.error("Error deleting file %s: %s", file_path, exc)
             raise FileError(str(exc)) from exc
 
-    async def parse_yaml(self, file_path: str) -> dict:
+    async def parse_yaml(self, file_path: str) -> dict[str, Any]:
         """Parse a YAML file and return its contents as a dict."""
         try:
             content = await self.read_file(file_path)
