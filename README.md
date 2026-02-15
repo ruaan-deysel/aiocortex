@@ -1,6 +1,6 @@
 # aiocortex
 
-Async Python library for Home Assistant configuration management. Provides git versioning (via dulwich), file management, YAML editing, Pydantic models, and AI instruction documents — all independent of Home Assistant internals.
+Async Python library for Home Assistant configuration management. Provides git versioning (via dulwich), file management, YAML editing, and Pydantic models — all independent of Home Assistant internals.
 
 This library is the core engine behind the [Cortex](https://github.com/ruaan-deysel/cortex) HACS integration.
 
@@ -16,7 +16,6 @@ pip install aiocortex
 - **File management** — Async file operations with path security (directory traversal prevention)
 - **YAML editing** — Safe YAML read/write/parse utilities
 - **Pydantic models** — Typed data models for automations, scripts, helpers, files, git commits
-- **AI instructions** — Markdown guidance documents for AI assistants interacting with Home Assistant
 
 ## Quick Start
 
@@ -37,10 +36,6 @@ history = await git_mgr.get_history(limit=10)
 # YAML editing
 editor = YAMLEditor()
 result = editor.remove_yaml_entry(content, "- id: 'old_automation'")
-
-# AI instructions
-from aiocortex import load_all_instructions
-docs = load_all_instructions(version="1.0.0")
 ```
 
 ## Architecture
@@ -50,7 +45,6 @@ aiocortex/
 ├── git/           # GitManager, sync, filters, cleanup (dulwich-based)
 ├── files/         # AsyncFileManager, YAMLEditor
 ├── models/        # Pydantic v2 models (common, config, files, git)
-├── instructions/  # AI instruction markdown documents
 └── exceptions.py  # CortexError hierarchy
 ```
 

@@ -49,7 +49,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-aiocortex = ["py.typed", "instructions/docs/*.md"]
+aiocortex = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
