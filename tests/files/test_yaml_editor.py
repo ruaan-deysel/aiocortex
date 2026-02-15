@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from aio_cortex.files import YAMLEditor
+from aiocortex.files import YAMLEditor
 
 
 class TestRemoveLinesFromEnd:
@@ -25,26 +25,13 @@ class TestRemoveLinesFromEnd:
 
 class TestRemoveEmptyYamlSection:
     def test_remove_with_comment(self) -> None:
-        content = (
-            "something: true\n"
-            "\n"
-            "# Lovelace\n"
-            "lovelace:\n"
-            "  dashboards:\n"
-            "next_section: true\n"
-        )
+        content = "something: true\n\n# Lovelace\nlovelace:\n  dashboards:\nnext_section: true\n"
         result = YAMLEditor.remove_empty_yaml_section(content, "lovelace")
         assert "lovelace:" not in result
         assert "next_section: true" in result
 
     def test_remove_without_comment(self) -> None:
-        content = (
-            "something: true\n"
-            "\n"
-            "lovelace:\n"
-            "  dashboards:\n"
-            "next_section: true\n"
-        )
+        content = "something: true\n\nlovelace:\n  dashboards:\nnext_section: true\n"
         result = YAMLEditor.remove_empty_yaml_section(content, "lovelace")
         assert "lovelace:" not in result
 

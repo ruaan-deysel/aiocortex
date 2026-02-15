@@ -87,15 +87,13 @@ def should_include_path(
 
     # DB files
     if any(
-        fnmatch.fnmatch(filename, pat) or fnmatch.fnmatch(rel_path, pat)
-        for pat in _DB_PATTERNS
+        fnmatch.fnmatch(filename, pat) or fnmatch.fnmatch(rel_path, pat) for pat in _DB_PATTERNS
     ):
         return False
 
     # Logs
     if any(
-        fnmatch.fnmatch(filename, pat) or fnmatch.fnmatch(rel_path, pat)
-        for pat in _LOG_PATTERNS
+        fnmatch.fnmatch(filename, pat) or fnmatch.fnmatch(rel_path, pat) for pat in _LOG_PATTERNS
     ):
         return False
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from aio_cortex.models import (
+from aiocortex.models import (
     AutomationConfig,
     CommitInfo,
     CortexResponse,

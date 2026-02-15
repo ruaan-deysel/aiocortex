@@ -37,13 +37,13 @@ Proceeding..."
 [then executes API calls]
 ```
 
-### Good Example: Add-on Installation (HA OS only)
+### Good Example: App Installation (HA OS only)
 
 ```
-User: "Check my add-ons"
+User: "Check my apps"
 
-AI: "I'll check your installed add-ons:
-1. GET /api/cortex/addons/installed - List installed add-ons
+AI: "I'll check your installed apps:
+1. GET /api/cortex/apps/installed - List installed apps
 2. Summarize the results
 
 Proceeding..."

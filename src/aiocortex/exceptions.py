@@ -1,8 +1,8 @@
-"""Exception hierarchy for aio-cortex."""
+"""Exception hierarchy for aiocortex."""
 
 
 class CortexError(Exception):
-    """Base exception for all aio-cortex errors."""
+    """Base exception for all aiocortex errors."""
 
 
 class GitError(CortexError):

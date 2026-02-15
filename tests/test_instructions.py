@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from aio_cortex.instructions import (
+from unittest.mock import patch
+
+from aiocortex.instructions import (
     get_instruction_files,
     load_all_instructions,
     load_instruction_file,
@@ -44,3 +46,10 @@ class TestGetInstructionFiles:
     def test_sorted(self) -> None:
         files = get_instruction_files()
         assert files == sorted(files)
+
+    def test_docs_dir_missing(self) -> None:
+        """Returns empty list when DOCS_DIR doesn't exist."""
+        with patch("aiocortex.instructions.DOCS_DIR") as mock_dir:
+            mock_dir.exists.return_value = False
+            files = get_instruction_files()
+            assert files == []

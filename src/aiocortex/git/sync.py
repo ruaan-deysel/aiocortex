@@ -47,7 +47,9 @@ def sync_config_to_shadow(
         for filename in files:
             rel_path = os.path.join(rel_root, filename) if rel_root else filename
             rel_path_norm = os.path.normpath(rel_path)
-            if not should_include_path(rel_path_norm, is_dir=False, shadow_dir_name=shadow_dir_name):
+            if not should_include_path(
+                rel_path_norm, is_dir=False, shadow_dir_name=shadow_dir_name
+            ):
                 continue
 
             src = config_path / rel_path_norm
@@ -163,7 +165,9 @@ def sync_shadow_to_config(
             for filename in files:
                 rel_path = os.path.join(rel_root, filename) if rel_root else filename
                 rel_path_norm = os.path.normpath(rel_path)
-                if not should_include_path(rel_path_norm, is_dir=False, shadow_dir_name=shadow_dir_name):
+                if not should_include_path(
+                    rel_path_norm, is_dir=False, shadow_dir_name=shadow_dir_name
+                ):
                     continue
                 config_paths.add(rel_path_norm.replace(os.sep, "/"))
 
