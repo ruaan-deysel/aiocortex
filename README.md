@@ -2,7 +2,7 @@
 
 Async Python library for Home Assistant configuration management. Provides git versioning (via dulwich), file management, YAML editing, and Pydantic models — all independent of Home Assistant internals.
 
-This library is the core engine behind the [Cortex](https://github.com/ruaan-deysel/cortex) HACS integration.
+This library is the core engine behind the [Cortex](https://github.com/ruaan-deysel/ha-cortex) HACS integration.
 
 ## Installation
 
