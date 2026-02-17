@@ -16,6 +16,15 @@ import aiofiles
 import yaml
 
 from ..exceptions import FileError, PathSecurityError, YAMLParseError
+from ..models.files import (
+    FileAppendResult,
+    FileDeleteResult,
+    FileInfo,
+    FileWriteResult,
+    YAMLPatchOperation,
+    YAMLPatchPreview,
+)
+from .yaml_editor import YAMLEditor
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +67,7 @@ class AsyncFileManager:
         self,
         directory: str = "",
         pattern: str = "*",
-    ) -> list[dict[str, object]]:
+    ) -> list[FileInfo]:
         """List files in *directory* matching *pattern* (recursive glob)."""
         try:
             dir_path = self._get_full_path(directory)
@@ -66,22 +75,22 @@ class AsyncFileManager:
             if not dir_path.exists():
                 return []
 
-            files: list[dict[str, object]] = []
+            files: list[FileInfo] = []
             for item in dir_path.rglob(pattern):
                 if item.is_file():
                     rel_path = item.relative_to(self.config_path)
                     stat = item.stat()
                     files.append(
-                        {
-                            "path": str(rel_path),
-                            "name": item.name,
-                            "size": stat.st_size,
-                            "modified": stat.st_mtime,
-                            "is_yaml": item.suffix in (".yaml", ".yml"),
-                        }
+                        FileInfo(
+                            path=str(rel_path),
+                            name=item.name,
+                            size=stat.st_size,
+                            modified=stat.st_mtime,
+                            is_yaml=item.suffix in (".yaml", ".yml"),
+                        )
                     )
 
-            return sorted(files, key=lambda x: str(x["path"]))
+            return sorted(files, key=lambda file_info: file_info.path)
         except PathSecurityError:
             raise
         except Exception as exc:
@@ -107,7 +116,7 @@ class AsyncFileManager:
             logger.error("Error reading file %s: %s", file_path, exc)
             raise FileError(str(exc)) from exc
 
-    async def write_file(self, file_path: str, content: str) -> dict[str, object]:
+    async def write_file(self, file_path: str, content: str) -> FileWriteResult:
         """Write *content* to *file_path*, creating parent directories as needed.
 
         Returns a result dict with *success*, *path*, and *size*.
@@ -126,14 +135,14 @@ class AsyncFileManager:
 
             logger.info("Wrote file: %s (%d bytes)", file_path, len(content))
 
-            return {"success": True, "path": file_path, "size": len(content)}
+            return FileWriteResult(success=True, path=file_path, size=len(content))
         except PathSecurityError:
             raise
         except Exception as exc:
             logger.error("Error writing file %s: %s", file_path, exc)
             raise FileError(str(exc)) from exc
 
-    async def append_file(self, file_path: str, content: str) -> dict[str, object]:
+    async def append_file(self, file_path: str, content: str) -> FileAppendResult:
         """Append *content* to *file_path*, creating it if it doesn't exist."""
         try:
             full_path = self._get_full_path(file_path)
@@ -152,19 +161,19 @@ class AsyncFileManager:
 
             logger.info("Appended to file: %s (%d bytes)", file_path, len(content))
 
-            return {
-                "success": True,
-                "path": file_path,
-                "added_bytes": len(content),
-                "total_size": len(new_content),
-            }
+            return FileAppendResult(
+                success=True,
+                path=file_path,
+                added_bytes=len(content),
+                total_size=len(new_content),
+            )
         except PathSecurityError:
             raise
         except Exception as exc:
             logger.error("Error appending to file %s: %s", file_path, exc)
             raise FileError(str(exc)) from exc
 
-    async def delete_file(self, file_path: str) -> dict[str, object]:
+    async def delete_file(self, file_path: str) -> FileDeleteResult:
         """Delete *file_path*.
 
         Returns a result dict with *success* and *path*.
@@ -178,7 +187,7 @@ class AsyncFileManager:
             full_path.unlink()
             logger.info("Deleted file: %s", file_path)
 
-            return {"success": True, "path": file_path}
+            return FileDeleteResult(success=True, path=file_path)
         except (FileNotFoundError, PathSecurityError):
             raise
         except Exception as exc:
@@ -194,3 +203,24 @@ class AsyncFileManager:
         except yaml.YAMLError as exc:
             logger.error("YAML parse error in %s: %s", file_path, exc)
             raise YAMLParseError(f"Invalid YAML: {exc}") from exc
+
+    async def preview_yaml_patch(
+        self,
+        file_path: str,
+        operations: list[YAMLPatchOperation],
+    ) -> YAMLPatchPreview:
+        """Preview semantic YAML patch operations without writing file changes."""
+        content = await self.read_file(file_path)
+        return YAMLEditor.preview_patch(content, operations)
+
+    async def apply_yaml_patch(
+        self,
+        file_path: str,
+        operations: list[YAMLPatchOperation],
+    ) -> YAMLPatchPreview:
+        """Apply semantic YAML patch operations and persist updated YAML content."""
+        content = await self.read_file(file_path)
+        preview = YAMLEditor.apply_patch(content, operations)
+        if preview.success:
+            await self.write_file(file_path, preview.patched_content)
+        return preview

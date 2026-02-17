@@ -9,6 +9,7 @@ import pytest
 
 from aiocortex.exceptions import FileError, PathSecurityError, YAMLParseError
 from aiocortex.files import AsyncFileManager
+from aiocortex.models import YAMLPatchOperation
 
 # -- Path security -----------------------------------------------------------
 
@@ -43,18 +44,18 @@ class TestPathSecurity:
 class TestListFiles:
     async def test_list_all(self, file_manager: AsyncFileManager) -> None:
         files = await file_manager.list_files()
-        paths = [f["path"] for f in files]
+        paths = [f.path for f in files]
         assert "configuration.yaml" in paths
         assert "automations.yaml" in paths
 
     async def test_list_subdirectory(self, file_manager: AsyncFileManager) -> None:
         files = await file_manager.list_files("custom_components")
         assert len(files) == 1
-        assert files[0]["name"] == "test.yaml"
+        assert files[0].name == "test.yaml"
 
     async def test_list_with_pattern(self, file_manager: AsyncFileManager) -> None:
         files = await file_manager.list_files(pattern="*.yaml")
-        assert all(f["is_yaml"] for f in files)
+        assert all(f.is_yaml for f in files)
 
     async def test_list_nonexistent_directory(self, file_manager: AsyncFileManager) -> None:
         files = await file_manager.list_files("nonexistent")
@@ -63,11 +64,11 @@ class TestListFiles:
     async def test_file_info_fields(self, file_manager: AsyncFileManager) -> None:
         files = await file_manager.list_files()
         for f in files:
-            assert "path" in f
-            assert "name" in f
-            assert "size" in f
-            assert "modified" in f
-            assert "is_yaml" in f
+            assert f.path
+            assert f.name
+            assert f.size >= 0
+            assert f.modified > 0
+            assert isinstance(f.is_yaml, bool)
 
     async def test_list_generic_exception(self, file_manager: AsyncFileManager) -> None:
         """Generic exceptions in list_files raise FileError."""
@@ -113,15 +114,15 @@ class TestReadFile:
 class TestWriteFile:
     async def test_write_new(self, file_manager: AsyncFileManager, tmp_config_dir: Path) -> None:
         result = await file_manager.write_file("new_file.yaml", "key: value\n")
-        assert result["success"] is True
-        assert result["size"] == 11
+        assert result.success is True
+        assert result.size == 11
         assert (tmp_config_dir / "new_file.yaml").read_text() == "key: value\n"
 
     async def test_write_creates_parents(
         self, file_manager: AsyncFileManager, tmp_config_dir: Path
     ) -> None:
         result = await file_manager.write_file("deep/nested/file.yaml", "a: 1\n")
-        assert result["success"] is True
+        assert result.success is True
         assert (tmp_config_dir / "deep" / "nested" / "file.yaml").exists()
 
     async def test_write_overwrite(self, file_manager: AsyncFileManager) -> None:
@@ -146,7 +147,7 @@ class TestWriteFile:
 class TestAppendFile:
     async def test_append_existing(self, file_manager: AsyncFileManager) -> None:
         result = await file_manager.append_file("scripts.yaml", "script_1:\n  alias: S\n")
-        assert result["success"] is True
+        assert result.success is True
         content = await file_manager.read_file("scripts.yaml")
         assert "script_1:" in content
 
@@ -154,7 +155,7 @@ class TestAppendFile:
         self, file_manager: AsyncFileManager, tmp_config_dir: Path
     ) -> None:
         result = await file_manager.append_file("brand_new.yaml", "hello: world\n")
-        assert result["success"] is True
+        assert result.success is True
         assert (tmp_config_dir / "brand_new.yaml").exists()
 
     async def test_append_path_security_reraise(self, file_manager: AsyncFileManager) -> None:
@@ -176,7 +177,7 @@ class TestDeleteFile:
         self, file_manager: AsyncFileManager, tmp_config_dir: Path
     ) -> None:
         result = await file_manager.delete_file("scripts.yaml")
-        assert result["success"] is True
+        assert result.success is True
         assert not (tmp_config_dir / "scripts.yaml").exists()
 
     async def test_delete_not_found(self, file_manager: AsyncFileManager) -> None:
@@ -208,3 +209,30 @@ class TestParseYaml:
         await file_manager.write_file("bad.yaml", ":\n  - :\n    bad: [")
         with pytest.raises(YAMLParseError):
             await file_manager.parse_yaml("bad.yaml")
+
+
+class TestSemanticYaml:
+    async def test_preview_yaml_patch(self, file_manager: AsyncFileManager) -> None:
+        operations = [
+            YAMLPatchOperation(
+                op="set",
+                path=["homeassistant", "name"],
+                value="Updated Home",
+            )
+        ]
+        preview = await file_manager.preview_yaml_patch("configuration.yaml", operations)
+        assert preview.success is True
+        assert "Updated Home" in preview.patched_content
+
+    async def test_apply_yaml_patch(self, file_manager: AsyncFileManager) -> None:
+        operations = [
+            YAMLPatchOperation(
+                op="set",
+                path=["homeassistant", "name"],
+                value="Applied Name",
+            )
+        ]
+        result = await file_manager.apply_yaml_patch("configuration.yaml", operations)
+        assert result.success is True
+        updated = await file_manager.read_file("configuration.yaml")
+        assert "Applied Name" in updated

@@ -146,7 +146,7 @@ class TestCommitChanges:
         sha = await git_manager.commit_changes(None)
         assert sha is not None
         history = await git_manager.get_history(limit=1)
-        assert "Auto-commit by Cortex" in history[0]["message"]
+        assert "Auto-commit by Cortex" in history[0].message
 
 
 class TestGetHistory:
@@ -161,8 +161,8 @@ class TestGetHistory:
 
         history = await git_manager.get_history()
         assert len(history) == 2
-        assert history[0]["message"] == "Second commit"
-        assert history[1]["message"] == "First commit"
+        assert history[0].message == "Second commit"
+        assert history[1].message == "First commit"
 
     async def test_limit(self, git_manager: GitManager, config_dir: Path) -> None:
         await git_manager.commit_changes("C1")
@@ -191,26 +191,26 @@ class TestGetPendingChanges:
     async def test_no_changes(self, git_manager: GitManager) -> None:
         await git_manager.commit_changes("Initial")
         pending = await git_manager.get_pending_changes()
-        assert pending["has_changes"] is False
+        assert pending.has_changes is False
 
     async def test_with_new_file(self, git_manager: GitManager, config_dir: Path) -> None:
         await git_manager.commit_changes("Initial")
         (config_dir / "brand_new.yaml").write_text("data: true\n")
         pending = await git_manager.get_pending_changes()
-        assert pending["has_changes"] is True
-        assert pending["summary"]["total"] > 0
+        assert pending.has_changes is True
+        assert pending.summary.total > 0
 
     async def test_repo_none_returns_empty(self, config_dir: Path) -> None:
         mgr = GitManager(config_dir)
         pending = await mgr.get_pending_changes()
-        assert pending["has_changes"] is False
+        assert pending.has_changes is False
 
     async def test_exception_returns_empty_with_error(self, git_manager: GitManager) -> None:
         with patch(
             "aiocortex.git.manager.sync_config_to_shadow", side_effect=RuntimeError("fail")
         ):
             pending = await git_manager.get_pending_changes()
-            assert "error" in pending
+            assert pending.error == "fail"
 
     async def test_diff_failure_in_pending(
         self, git_manager: GitManager, config_dir: Path
@@ -220,8 +220,8 @@ class TestGetPendingChanges:
         (config_dir / "brand_new.yaml").write_text("data: true\n")
         with patch.object(git_manager, "get_diff", side_effect=RuntimeError("diff failed")):
             pending = await git_manager.get_pending_changes()
-            assert pending["has_changes"] is True
-            assert pending["diff"] == ""
+            assert pending.has_changes is True
+            assert pending.diff == ""
 
     async def test_pending_with_staged_and_unstaged_changes(
         self, git_manager: GitManager, config_dir: Path
@@ -245,8 +245,8 @@ class TestGetPendingChanges:
         (shadow / "unstaged.yaml").write_text("new: data\n")
 
         pending = await git_manager.get_pending_changes()
-        assert pending["has_changes"] is True
-        assert pending["summary"]["total"] > 0
+        assert pending.has_changes is True
+        assert pending.summary.total > 0
 
     async def test_pending_with_deleted_file(
         self, git_manager: GitManager, config_dir: Path
@@ -262,7 +262,7 @@ class TestGetPendingChanges:
         porcelain.add(str(shadow), paths=None)
 
         pending = await git_manager.get_pending_changes()
-        assert pending["has_changes"] is True
+        assert pending.has_changes is True
 
     async def test_pending_with_explicit_staged_add(
         self, git_manager: GitManager, config_dir: Path
@@ -281,17 +281,17 @@ class TestGetPendingChanges:
         (shadow / "configuration.yaml").write_text("modified unstaged\n")
 
         pending = await git_manager.get_pending_changes()
-        assert pending["has_changes"] is True
+        assert pending.has_changes is True
         # The staged add should appear
-        all_files = pending["files_added"] + pending["files_modified"]
+        all_files = pending.files_added + pending.files_modified
         assert len(all_files) > 0
 
 
 class TestCheckpoint:
     async def test_create(self, git_manager: GitManager) -> None:
         result = await git_manager.create_checkpoint("Test operation")
-        assert result["success"] is True
-        assert result["tag"] is not None
+        assert result.success is True
+        assert result.tag is not None
         assert git_manager.processing_request is True
 
     async def test_end_processing(self, git_manager: GitManager) -> None:
@@ -302,22 +302,22 @@ class TestCheckpoint:
     async def test_repo_none_returns_failure(self, config_dir: Path) -> None:
         mgr = GitManager(config_dir)
         result = await mgr.create_checkpoint("test")
-        assert result["success"] is False
-        assert result["commit_hash"] is None
+        assert result.success is False
+        assert result.commit_hash is None
 
     async def test_checkpoint_no_commit_hash_falls_back(self, git_manager: GitManager) -> None:
         """When commit returns None, falls back to HEAD."""
         await git_manager.commit_changes("Initial")
         # No new changes — commit_changes returns None, should fall back to HEAD
         result = await git_manager.create_checkpoint("test")
-        assert result["success"] is True
-        assert result["commit_hash"] is not None
+        assert result.success is True
+        assert result.commit_hash is not None
 
     async def test_checkpoint_exception(self, git_manager: GitManager) -> None:
         """Exception during checkpoint returns failure dict."""
         with patch.object(git_manager, "commit_changes", side_effect=RuntimeError("fail")):
             result = await git_manager.create_checkpoint("test")
-            assert result["success"] is False
+            assert result.success is False
 
     async def test_tag_creation_failure_non_fatal(self, git_manager: GitManager) -> None:
         """Tag creation failure is logged but checkpoint still succeeds."""
@@ -325,7 +325,7 @@ class TestCheckpoint:
             "aiocortex.git.manager.porcelain.tag_create", side_effect=RuntimeError("tag fail")
         ):
             result = await git_manager.create_checkpoint("test")
-            assert result["success"] is True
+            assert result.success is True
 
     async def test_checkpoint_head_fallback_fails(self, git_manager: GitManager) -> None:
         """When commit returns None AND HEAD lookup fails, commit_hash is None."""
@@ -334,8 +334,8 @@ class TestCheckpoint:
         with patch.object(git_manager, "commit_changes", return_value=None):
             with patch.object(git_manager.repo, "head", side_effect=KeyError("no HEAD")):
                 result = await git_manager.create_checkpoint("test")
-                assert result["success"] is True
-                assert result["commit_hash"] is None
+                assert result.success is True
+                assert result.commit_hash is None
 
 
 class TestGetDiff:
@@ -420,7 +420,7 @@ class TestRollback:
 
         # Rollback
         result = await git_manager.rollback(sha1)
-        assert result["success"] is True
+        assert result.success is True
 
         # Verify file is restored
         content = (config_dir / "configuration.yaml").read_text()
@@ -451,8 +451,8 @@ class TestRestoreFilesFromCommit:
         assert sha1 is not None
 
         result = await git_manager.restore_files_from_commit(sha1)
-        assert result["success"] is True
-        assert result["count"] >= 0
+        assert result.success is True
+        assert result.count >= 0
 
     async def test_restore_with_pattern(self, git_manager: GitManager, config_dir: Path) -> None:
         sha1 = await git_manager.commit_changes("First")
@@ -461,7 +461,7 @@ class TestRestoreFilesFromCommit:
         result = await git_manager.restore_files_from_commit(
             sha1, file_patterns=["configuration.yaml"]
         )
-        assert result["success"] is True
+        assert result.success is True
 
     async def test_restore_default_to_head(
         self, git_manager: GitManager, config_dir: Path
@@ -469,7 +469,7 @@ class TestRestoreFilesFromCommit:
         """When commit_hash is None, uses HEAD."""
         await git_manager.commit_changes("First")
         result = await git_manager.restore_files_from_commit()
-        assert result["success"] is True
+        assert result.success is True
 
     async def test_restore_with_non_matching_pattern(
         self, git_manager: GitManager, config_dir: Path
@@ -482,9 +482,9 @@ class TestRestoreFilesFromCommit:
         (sub / "device.yaml").write_text("esphome:\n  name: test\n")
         await git_manager.commit_changes("With subdir")
         result = await git_manager.restore_files_from_commit(file_patterns=["*.xyz"])
-        assert result["success"] is True
+        assert result.success is True
         # No files match *.xyz, so none should be restored
-        assert result["count"] == 0
+        assert result.count == 0
 
     async def test_restore_failure_raises(self, git_manager: GitManager) -> None:
         await git_manager.commit_changes("First")
@@ -497,14 +497,14 @@ class TestCleanupCommits:
     async def test_no_cleanup_needed(self, git_manager: GitManager) -> None:
         await git_manager.commit_changes("Only commit")
         result = await git_manager.cleanup_commits()
-        assert result["success"] is True
-        assert "No cleanup needed" in result["message"]
+        assert result.success is True
+        assert "No cleanup needed" in result.message
 
     async def test_repo_none_returns_failure(self, config_dir: Path) -> None:
         mgr = GitManager(config_dir)
         result = await mgr.cleanup_commits()
-        assert result["success"] is False
-        assert "not enabled" in result["message"]
+        assert result.success is False
+        assert "not enabled" in result.message
 
     async def test_cleanup_failure_returns_error(self, config_dir: Path) -> None:
         mgr = GitManager(config_dir, max_backups=2, auto_commit=True)
@@ -517,5 +517,36 @@ class TestCleanupCommits:
             "aiocortex.git.manager.truncate_history", side_effect=GitError("truncate fail")
         ):
             result = await mgr.cleanup_commits()
-            assert result["success"] is False
-            assert "truncate fail" in result["message"]
+            assert result.success is False
+            assert "truncate fail" in result.message
+
+
+class TestTransactions:
+    async def test_begin_stage_validate_commit(
+        self,
+        git_manager: GitManager,
+        config_dir: Path,
+    ) -> None:
+        transaction = await git_manager.begin_transaction({"request": "update config"})
+        assert transaction.status == "open"
+
+        await git_manager.stage_file_write(
+            transaction.transaction_id,
+            "configuration.yaml",
+            "homeassistant:\n  name: Transaction Home\n",
+        )
+        validation = await git_manager.validate_transaction(transaction.transaction_id)
+        assert validation.valid is True
+
+        result = await git_manager.commit_transaction(transaction.transaction_id, "Apply tx")
+        assert result.success is True
+        assert result.transaction.status == "committed"
+        assert "configuration.yaml" in result.rollback_metadata.touched_paths
+        assert "Transaction Home" in (config_dir / "configuration.yaml").read_text()
+
+    async def test_abort_transaction(self, git_manager: GitManager) -> None:
+        transaction = await git_manager.begin_transaction({"request": "delete"})
+        await git_manager.stage_file_delete(transaction.transaction_id, "automations.yaml")
+        result = await git_manager.abort_transaction(transaction.transaction_id)
+        assert result.success is True
+        assert result.transaction.status == "aborted"

@@ -14,8 +14,9 @@ pip install aiocortex
 
 - **Git versioning** — Shadow git repository for HA config backups using [dulwich](https://www.dulwich.io/) (pure Python, no git binary required)
 - **File management** — Async file operations with path security (directory traversal prevention)
-- **YAML editing** — Safe YAML read/write/parse utilities
+- **YAML editing** — Safe YAML read/write/parse utilities + semantic patch preview/apply helpers
 - **Pydantic models** — Typed data models for automations, scripts, helpers, files, git commits
+- **Transactions** — Durable plan/apply/abort flow with rollback metadata for multi-step config changes
 - **AI Instructions** — Bundled markdown instruction docs for AI-powered HA management (sync & async loaders)
 
 ## Quick Start
@@ -34,9 +35,23 @@ await git_mgr.init_repo()
 await git_mgr.commit_changes("Add automation: motion sensor light")
 history = await git_mgr.get_history(limit=10)
 
+# Transaction operations
+tx = await git_mgr.begin_transaction({"request": "update automation"})
+await git_mgr.stage_file_write(tx.transaction_id, "automations.yaml", "- id: motion_1\n")
+validation = await git_mgr.validate_transaction(tx.transaction_id)
+if validation.valid:
+    await git_mgr.commit_transaction(tx.transaction_id, "Apply automation updates")
+
 # YAML editing
 editor = YAMLEditor()
 result = editor.remove_yaml_entry(content, "- id: 'old_automation'")
+
+# Semantic YAML patch preview
+from aiocortex.models import YAMLPatchOperation
+preview = editor.preview_patch(
+    content,
+    [YAMLPatchOperation(op="set", path=["homeassistant", "name"], value="New Name")],
+)
 ```
 
 ## Architecture
@@ -104,6 +119,11 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest --cov=aiocortex
 ```
+
+## Contract Changes (0.3.0)
+
+- Public file/git manager methods now return strongly typed Pydantic models instead of raw dicts.
+- Consumers should migrate from dictionary key access to attribute access.
 
 ## License
 

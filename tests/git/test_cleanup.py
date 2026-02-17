@@ -51,8 +51,8 @@ class TestManualCleanup:
     async def test_no_cleanup_needed(self, git_manager: GitManager) -> None:
         await git_manager.commit_changes("Only commit")
         result = await git_manager.cleanup_commits()
-        assert result["success"] is True
-        assert "No cleanup needed" in result["message"]
+        assert result.success is True
+        assert "No cleanup needed" in result.message
 
     async def test_cleanup_returns_result(self, git_manager: GitManager, config_dir: Path) -> None:
         for i in range(7):
@@ -60,7 +60,7 @@ class TestManualCleanup:
             await git_manager.commit_changes(f"Commit {i}")
 
         result = await git_manager.cleanup_commits()
-        assert result["success"] is True or "failed" in result.get("message", "").lower()
+        assert result.success is True or "failed" in result.message.lower()
         # Regardless of success, the repo should still work
         history = await git_manager.get_history()
         assert len(history) > 0

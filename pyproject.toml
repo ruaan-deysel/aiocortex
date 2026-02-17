@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aiocortex"
-version = "0.2.0"
+version = "0.3.0"
 description = "Async Python library for Home Assistant configuration management"
 readme = "README.md"
 license = "MIT"

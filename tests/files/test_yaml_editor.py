@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from aiocortex.files import YAMLEditor
+from aiocortex.models import YAMLPatchOperation
 
 
 class TestRemoveLinesFromEnd:
@@ -61,3 +62,51 @@ class TestRemoveYamlEntry:
         modified, found = YAMLEditor.remove_yaml_entry(content, "lovelace", "fake")
         assert found is False
         assert modified == content
+
+
+class TestSemanticPatch:
+    def test_preview_set_operation(self) -> None:
+        content = "homeassistant:\n  name: Test\n"
+        preview = YAMLEditor.preview_patch(
+            content,
+            [
+                YAMLPatchOperation(
+                    op="set",
+                    path=["homeassistant", "name"],
+                    value="Changed",
+                )
+            ],
+        )
+        assert preview.success is True
+        assert "Changed" in preview.patched_content
+        assert preview.operations_applied == 1
+
+    def test_preview_merge_item(self) -> None:
+        content = "automation:\n- id: motion\n  alias: Motion\n"
+        preview = YAMLEditor.preview_patch(
+            content,
+            [
+                YAMLPatchOperation(
+                    op="merge_item",
+                    path=["automation"],
+                    merge_key="id",
+                    value={"id": "motion", "alias": "Motion Changed"},
+                )
+            ],
+        )
+        assert preview.success is True
+        assert "Motion Changed" in preview.patched_content
+
+    def test_preview_conflict(self) -> None:
+        content = "homeassistant:\n  name: Test\n"
+        preview = YAMLEditor.preview_patch(
+            content,
+            [YAMLPatchOperation(op="remove", path=["does", "not", "exist"])],
+        )
+        assert preview.success is False
+        assert len(preview.conflicts) == 1
+
+    def test_normalized_diff(self) -> None:
+        diff = YAMLEditor.normalized_diff("a: 1\n", "a: 2\n")
+        assert "before.yaml" in diff
+        assert "after.yaml" in diff

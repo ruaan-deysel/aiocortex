@@ -10,7 +10,10 @@ All public async methods delegate to synchronous helpers via
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import shutil
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -19,6 +22,21 @@ from dulwich import porcelain
 from dulwich.repo import Repo
 
 from ..exceptions import GitError, GitNotInitializedError
+from ..models.git import (
+    CheckpointResult,
+    CleanupResult,
+    CommitInfo,
+    PendingChanges,
+    PendingChangesSummary,
+    RestoreFilesResult,
+    RollbackResult,
+    TransactionAbortResult,
+    TransactionCommitResult,
+    TransactionOperation,
+    TransactionRollbackMetadata,
+    TransactionState,
+    TransactionValidationResult,
+)
 from .cleanup import truncate_history
 from .sync import sync_config_to_shadow, sync_shadow_to_config
 
@@ -48,6 +66,7 @@ class GitManager:
         self.max_backups = max_backups
         self.auto_commit = auto_commit
         self.processing_request = False
+        self.transaction_dir = self.shadow_root / ".cortex_transactions"
 
         self._repo: Repo | None = None
 
@@ -58,6 +77,7 @@ class GitManager:
     def _init_repo_sync(self) -> None:
         """Synchronous init — called via ``asyncio.to_thread``."""
         self.shadow_root.mkdir(parents=True, exist_ok=True)
+        self.transaction_dir.mkdir(parents=True, exist_ok=True)
         if (self.shadow_root / ".git").exists():
             self._repo = Repo(str(self.shadow_root))
             logger.info("Git shadow repository loaded from %s", self.shadow_root)
@@ -84,6 +104,33 @@ class GitManager:
                 "Shadow repository not initialised — call init_repo() first"
             )
         return self._repo
+
+    def _transaction_file(self, transaction_id: str) -> Path:
+        return self.transaction_dir / f"{transaction_id}.json"
+
+    def _backup_dir(self, transaction_id: str) -> Path:
+        return self.transaction_dir / "backups" / transaction_id
+
+    def _resolve_config_path(self, relative_path: str) -> Path:
+        candidate = (self.config_path / relative_path.lstrip("/")).resolve()
+        if not str(candidate).startswith(str(self.config_path)):
+            raise GitError(f"Path outside config directory: {relative_path}")
+        return candidate
+
+    def _load_transaction_sync(self, transaction_id: str) -> TransactionState:
+        tx_file = self._transaction_file(transaction_id)
+        if not tx_file.exists():
+            raise GitError(f"Transaction not found: {transaction_id}")
+        data = json.loads(tx_file.read_text(encoding="utf-8"))
+        return TransactionState.model_validate(data)
+
+    def _save_transaction_sync(self, transaction: TransactionState) -> None:
+        self.transaction_dir.mkdir(parents=True, exist_ok=True)
+        tx_file = self._transaction_file(transaction.transaction_id)
+        tx_file.write_text(
+            json.dumps(transaction.model_dump(mode="json"), indent=2),
+            encoding="utf-8",
+        )
 
     # ------------------------------------------------------------------
     # Status helpers
@@ -205,15 +252,15 @@ class GitManager:
     # Checkpoint
     # ------------------------------------------------------------------
 
-    async def create_checkpoint(self, user_request: str) -> dict[str, Any]:
+    async def create_checkpoint(self, user_request: str) -> CheckpointResult:
         """Create a tagged checkpoint before a multi-step operation."""
         if self._repo is None:
-            return {
-                "success": False,
-                "message": "Git versioning not enabled",
-                "commit_hash": None,
-                "tag": None,
-            }
+            return CheckpointResult(
+                success=False,
+                message="Git versioning not enabled",
+                commit_hash=None,
+                tag=None,
+            )
 
         try:
             commit_hash = await self.commit_changes(
@@ -246,25 +293,216 @@ class GitManager:
 
             self.processing_request = True
 
-            return {
-                "success": True,
-                "message": f"Checkpoint created: {tag_name}",
-                "commit_hash": commit_hash,
-                "tag": tag_name,
-                "timestamp": timestamp,
-            }
+            return CheckpointResult(
+                success=True,
+                message=f"Checkpoint created: {tag_name}",
+                commit_hash=commit_hash,
+                tag=tag_name,
+                timestamp=timestamp,
+            )
         except Exception as exc:
             logger.error("Failed to create checkpoint: %s", exc)
-            return {
-                "success": False,
-                "message": f"Failed to create checkpoint: {exc}",
-                "commit_hash": None,
-                "tag": None,
-            }
+            return CheckpointResult(
+                success=False,
+                message=f"Failed to create checkpoint: {exc}",
+                commit_hash=None,
+                tag=None,
+            )
 
     def end_request_processing(self) -> None:
         """Re-enable auto-commits after request processing."""
         self.processing_request = False
+
+    # ------------------------------------------------------------------
+    # Transactions
+    # ------------------------------------------------------------------
+
+    def _begin_transaction_sync(self, context: dict[str, Any] | None = None) -> TransactionState:
+        tx_id = uuid.uuid4().hex
+        now = datetime.now(UTC)
+        transaction = TransactionState(
+            transaction_id=tx_id,
+            context=context or {},
+            status="open",
+            operations=[],
+            created_at=now,
+            updated_at=now,
+        )
+        self._save_transaction_sync(transaction)
+        return transaction
+
+    async def begin_transaction(self, context: dict[str, Any] | None = None) -> TransactionState:
+        """Start a new persistent transaction for staged file operations."""
+        return await asyncio.to_thread(self._begin_transaction_sync, context)
+
+    def _stage_operation_sync(
+        self,
+        transaction_id: str,
+        operation: TransactionOperation,
+    ) -> TransactionState:
+        transaction = self._load_transaction_sync(transaction_id)
+        if transaction.status not in {"open", "validated"}:
+            raise GitError(
+                f"Cannot stage operations for transaction in state {transaction.status}"
+            )
+
+        transaction.operations.append(operation)
+        transaction.status = "open"
+        transaction.updated_at = datetime.now(UTC)
+        self._save_transaction_sync(transaction)
+        return transaction
+
+    async def stage_file_write(
+        self,
+        transaction_id: str,
+        path: str,
+        content: str,
+    ) -> TransactionState:
+        """Stage a file write operation."""
+        operation = TransactionOperation(op="write", path=path, content=content)
+        return await asyncio.to_thread(self._stage_operation_sync, transaction_id, operation)
+
+    async def stage_file_delete(self, transaction_id: str, path: str) -> TransactionState:
+        """Stage a file delete operation."""
+        operation = TransactionOperation(op="delete", path=path, content=None)
+        return await asyncio.to_thread(self._stage_operation_sync, transaction_id, operation)
+
+    def _validate_transaction_sync(self, transaction_id: str) -> TransactionValidationResult:
+        transaction = self._load_transaction_sync(transaction_id)
+        errors: list[str] = []
+
+        if not transaction.operations:
+            errors.append("Transaction has no staged operations")
+
+        for operation in transaction.operations:
+            try:
+                self._resolve_config_path(operation.path)
+            except GitError as exc:
+                errors.append(str(exc))
+            if operation.op == "write" and operation.content is None:
+                errors.append(f"Write operation missing content for {operation.path}")
+
+        is_valid = not errors
+        transaction.status = "validated" if is_valid else "failed"
+        transaction.updated_at = datetime.now(UTC)
+        self._save_transaction_sync(transaction)
+        return TransactionValidationResult(valid=is_valid, errors=errors)
+
+    async def validate_transaction(self, transaction_id: str) -> TransactionValidationResult:
+        """Validate staged operations before apply."""
+        return await asyncio.to_thread(self._validate_transaction_sync, transaction_id)
+
+    def _rollback_failed_transaction_sync(
+        self,
+        backup_dir: Path,
+        rollback_metadata: TransactionRollbackMetadata,
+    ) -> None:
+        for created_path in rollback_metadata.created_files:
+            target = self._resolve_config_path(created_path)
+            if target.exists():
+                target.unlink()
+
+        for backup_file in rollback_metadata.backup_files:
+            backup_path = Path(backup_file)
+            if not backup_path.exists():
+                continue
+
+            relative_name = backup_path.relative_to(backup_dir).as_posix()
+            target = self._resolve_config_path(relative_name)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(backup_path, target)
+
+    def _commit_transaction_sync(
+        self,
+        transaction_id: str,
+        message: str | None = None,
+    ) -> TransactionCommitResult:
+        transaction = self._load_transaction_sync(transaction_id)
+        validation = self._validate_transaction_sync(transaction_id)
+        transaction = self._load_transaction_sync(transaction_id)
+        if not validation.valid:
+            return TransactionCommitResult(
+                success=False,
+                transaction=transaction,
+                commit_hash=None,
+                rollback_metadata=transaction.rollback_metadata,
+                error="; ".join(validation.errors),
+            )
+
+        backup_dir = self._backup_dir(transaction_id)
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        rollback_metadata = TransactionRollbackMetadata()
+
+        try:
+            for operation in transaction.operations:
+                target = self._resolve_config_path(operation.path)
+                rollback_metadata.touched_paths.append(operation.path)
+
+                if target.exists():
+                    backup_target = backup_dir / operation.path
+                    backup_target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(target, backup_target)
+                    rollback_metadata.backup_files.append(str(backup_target))
+                elif operation.op == "write":
+                    rollback_metadata.created_files.append(operation.path)
+
+                if operation.op == "write":
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text(operation.content or "", encoding="utf-8")
+                elif target.exists():
+                    target.unlink()
+
+            commit_hash = self._commit_changes_sync(
+                message or f"Transaction apply: {transaction_id}",
+                force=True,
+            )
+
+            transaction.status = "committed"
+            transaction.updated_at = datetime.now(UTC)
+            transaction.rollback_metadata = rollback_metadata
+            self._save_transaction_sync(transaction)
+            return TransactionCommitResult(
+                success=True,
+                transaction=transaction,
+                commit_hash=commit_hash,
+                rollback_metadata=rollback_metadata,
+            )
+        except Exception as exc:
+            self._rollback_failed_transaction_sync(backup_dir, rollback_metadata)
+            transaction = self._load_transaction_sync(transaction_id)
+            transaction.status = "failed"
+            transaction.updated_at = datetime.now(UTC)
+            transaction.rollback_metadata = rollback_metadata
+            self._save_transaction_sync(transaction)
+            return TransactionCommitResult(
+                success=False,
+                transaction=transaction,
+                commit_hash=None,
+                rollback_metadata=rollback_metadata,
+                error=str(exc),
+            )
+
+    async def commit_transaction(
+        self,
+        transaction_id: str,
+        message: str | None = None,
+    ) -> TransactionCommitResult:
+        """Validate and apply staged operations atomically."""
+        return await asyncio.to_thread(self._commit_transaction_sync, transaction_id, message)
+
+    def _abort_transaction_sync(self, transaction_id: str) -> TransactionAbortResult:
+        transaction = self._load_transaction_sync(transaction_id)
+        if transaction.status == "committed":
+            raise GitError("Committed transactions cannot be aborted")
+
+        transaction.status = "aborted"
+        transaction.updated_at = datetime.now(UTC)
+        self._save_transaction_sync(transaction)
+        return TransactionAbortResult(success=True, transaction=transaction)
+
+    async def abort_transaction(self, transaction_id: str) -> TransactionAbortResult:
+        """Abort a pending transaction without applying staged operations."""
+        return await asyncio.to_thread(self._abort_transaction_sync, transaction_id)
 
     # ------------------------------------------------------------------
     # History
@@ -287,13 +525,14 @@ class GitManager:
             )
         return commits
 
-    async def get_history(self, limit: int = 20) -> list[dict[str, Any]]:
+    async def get_history(self, limit: int = 20) -> list[CommitInfo]:
         """Return the last *limit* commits."""
         if self._repo is None:
             return []
 
         try:
-            return await asyncio.to_thread(self._get_history_sync, limit)
+            history = await asyncio.to_thread(self._get_history_sync, limit)
+            return [CommitInfo.model_validate(commit) for commit in history]
         except Exception as exc:
             logger.error("Failed to get history: %s", exc)
             return []
@@ -351,15 +590,17 @@ class GitManager:
             },
         }
 
-    async def get_pending_changes(self) -> dict[str, Any]:
+    async def get_pending_changes(self) -> PendingChanges:
         """Return uncommitted changes between config and the last commit."""
-        empty: dict[str, Any] = {
-            "has_changes": False,
-            "files_modified": [],
-            "files_added": [],
-            "files_deleted": [],
-            "summary": {"modified": 0, "added": 0, "deleted": 0, "total": 0},
-        }
+        empty = PendingChanges(
+            has_changes=False,
+            files_modified=[],
+            files_added=[],
+            files_deleted=[],
+            summary=PendingChangesSummary(modified=0, added=0, deleted=0, total=0),
+            diff="",
+            error=None,
+        )
         if self._repo is None:
             return empty
 
@@ -374,10 +615,10 @@ class GitManager:
             else:
                 result["diff"] = ""
 
-            return result
+            return PendingChanges.model_validate(result)
         except Exception as exc:
             logger.error("Failed to get pending changes: %s", exc)
-            return {**empty, "error": str(exc)}
+            return empty.model_copy(update={"error": str(exc)})
 
     # ------------------------------------------------------------------
     # Diff
@@ -469,13 +710,14 @@ class GitManager:
             "message": f"Rolled back to {commit_hash}",
         }
 
-    async def rollback(self, commit_hash: str) -> dict[str, Any]:
+    async def rollback(self, commit_hash: str) -> RollbackResult:
         """Hard-reset the shadow repo to *commit_hash* and sync back to config."""
         if self._repo is None:
             raise GitNotInitializedError("Git versioning not enabled")
 
         try:
-            return await asyncio.to_thread(self._rollback_sync, commit_hash)
+            result = await asyncio.to_thread(self._rollback_sync, commit_hash)
+            return RollbackResult.model_validate(result)
         except (GitNotInitializedError, GitError):
             raise
         except Exception as exc:
@@ -551,15 +793,16 @@ class GitManager:
         self,
         commit_hash: str | None = None,
         file_patterns: list[str] | None = None,
-    ) -> dict[str, Any]:
+    ) -> RestoreFilesResult:
         """Restore files from a specific commit into the shadow repo, then sync."""
         if self._repo is None:
             raise GitNotInitializedError("Git repository not available")
 
         try:
-            return await asyncio.to_thread(
+            result = await asyncio.to_thread(
                 self._restore_files_from_commit_sync, commit_hash, file_patterns
             )
+            return RestoreFilesResult.model_validate(result)
         except (GitNotInitializedError, GitError):
             raise
         except Exception as exc:
@@ -593,23 +836,24 @@ class GitManager:
             "commits_after": commits_after,
         }
 
-    async def cleanup_commits(self) -> dict[str, Any]:
+    async def cleanup_commits(self) -> CleanupResult:
         """Manually truncate history to *max_backups* commits."""
         if self._repo is None:
-            return {
-                "success": False,
-                "message": "Git versioning not enabled",
-                "commits_before": 0,
-                "commits_after": 0,
-            }
+            return CleanupResult(
+                success=False,
+                message="Git versioning not enabled",
+                commits_before=0,
+                commits_after=0,
+            )
 
         try:
-            return await asyncio.to_thread(self._cleanup_commits_sync)
+            result = await asyncio.to_thread(self._cleanup_commits_sync)
+            return CleanupResult.model_validate(result)
         except Exception as exc:
             logger.error("Cleanup failed: %s", exc)
-            return {
-                "success": False,
-                "message": f"Cleanup failed: {exc}",
-                "commits_before": 0,
-                "commits_after": 0,
-            }
+            return CleanupResult(
+                success=False,
+                message=f"Cleanup failed: {exc}",
+                commits_before=0,
+                commits_after=0,
+            )

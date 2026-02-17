@@ -7,15 +7,27 @@ from pydantic import ValidationError
 
 from aiocortex.models import (
     AutomationConfig,
+    CheckpointResult,
+    CleanupResult,
     CommitInfo,
     CortexResponse,
+    FileAppendResult,
+    FileDeleteResult,
     FileInfo,
     FileWriteResult,
     HelperSpec,
     PendingChanges,
     PendingChangesSummary,
+    RestoreFilesResult,
+    RollbackResult,
     ScriptConfig,
     ServiceCallSpec,
+    TransactionOperation,
+    TransactionState,
+    TransactionValidationResult,
+    YAMLConflict,
+    YAMLPatchOperation,
+    YAMLPatchPreview,
 )
 
 
@@ -118,6 +130,16 @@ class TestFileWriteResult:
         assert r.backup is None
 
 
+class TestFileOperationResults:
+    def test_append_result(self) -> None:
+        r = FileAppendResult(success=True, path="a.yaml", added_bytes=4, total_size=10)
+        assert r.total_size == 10
+
+    def test_delete_result(self) -> None:
+        r = FileDeleteResult(success=True, path="a.yaml")
+        assert r.success is True
+
+
 class TestCommitInfo:
     def test_valid(self) -> None:
         c = CommitInfo(
@@ -144,3 +166,55 @@ class TestPendingChanges:
             summary=PendingChangesSummary(modified=1, added=1, total=2),
         )
         assert p.summary.total == 2
+
+
+class TestGitResultModels:
+    def test_checkpoint_result(self) -> None:
+        result = CheckpointResult(success=True, message="ok", commit_hash="abc", tag="checkpoint")
+        assert result.success is True
+
+    def test_rollback_result(self) -> None:
+        result = RollbackResult(success=True, commit="abc", message="rolled back")
+        assert result.commit == "abc"
+
+    def test_restore_and_cleanup(self) -> None:
+        restore = RestoreFilesResult(
+            success=True,
+            commit="abc",
+            restored_files=["a.yaml"],
+            count=1,
+        )
+        cleanup = CleanupResult(success=True, message="done", commits_before=10, commits_after=5)
+        assert restore.count == 1
+        assert cleanup.commits_after == 5
+
+
+class TestTransactionModels:
+    def test_operation_and_state(self) -> None:
+        operation = TransactionOperation(op="write", path="configuration.yaml", content="x")
+        state = TransactionState(
+            transaction_id="tx1",
+            operations=[operation],
+            created_at="2026-02-17T00:00:00Z",
+            updated_at="2026-02-17T00:00:00Z",
+        )
+        assert state.operations[0].op == "write"
+
+    def test_validation(self) -> None:
+        result = TransactionValidationResult(valid=False, errors=["bad path"])
+        assert result.valid is False
+
+
+class TestYamlPatchModels:
+    def test_models(self) -> None:
+        operation = YAMLPatchOperation(op="set", path=["homeassistant", "name"], value="New")
+        conflict = YAMLConflict(path="homeassistant/name", reason="not found")
+        preview = YAMLPatchPreview(
+            success=False,
+            operations_applied=0,
+            conflicts=[conflict],
+            patched_content="",
+            diff="",
+        )
+        assert operation.op == "set"
+        assert len(preview.conflicts) == 1
